@@ -14,6 +14,10 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Processing API", Version = "v1" });
 });
 
+builder.Configuration
+    .AddJsonFile("appsettings.Local.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
 var connString =
     builder.Configuration.GetConnectionString("DefaultConnection") 
     ?? builder.Configuration["ConnectionStrings:DefaultConnection"] 
@@ -59,6 +63,8 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
 }
+
+// app.UseHttpsRedirection(); // habilite se for servir com certificado local
 
 app.UseAuthorization();
 

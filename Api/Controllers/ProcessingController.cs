@@ -1,9 +1,11 @@
-﻿using ApiPreProcessamento.Data;
-using ApiPreProcessamento.Models;
-using Microsoft.AspNetCore.Http;
+﻿using Api.Data;
+using Api.Dtos;
+using Api.Models;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
-namespace ApiPreProcessamento.Controllers
+namespace Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -13,29 +15,44 @@ namespace ApiPreProcessamento.Controllers
         public ProcessingController(AppDbContext db) => _db = db;
 
         [HttpPost]
-        public async Task<IActionResult> CreateJob(Guid scriptId, [FromBody] object inputData)
+        [ProducesResponseType(typeof(Guid), StatusCodes.Status201Created)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> CreateJob([FromBody] ProcessingCreateDto dto)
         {
-            var script = await _db.Scripts.FindAsync(scriptId);
+            var script = await _db.Scripts.FindAsync(dto.ScriptId);
             if (script == null) return NotFound("Script not found");
 
             var job = new ProcessingJob
             {
-                ScriptId = scriptId,
-                Script = script,
-                InputData = System.Text.Json.JsonSerializer.Serialize(inputData)
+                ScriptId = dto.ScriptId,
+                InputData = JsonSerializer.Serialize(dto.Data),
+                Status = JobStatus.Pending,
+                CreatedAt = DateTime.UtcNow
             };
 
             _db.ProcessingJobs.Add(job);
             await _db.SaveChangesAsync();
 
-            return Ok(job.Id);
+            return CreatedAtAction(nameof(Get), new { id = job.Id }, job.Id);
         }
 
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetJob(Guid id)
+        [HttpGet("{id:guid}")]
+        [ProducesResponseType(typeof(ProcessingJobDto), StatusCodes.Status200OK)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        public async Task<IActionResult> Get(Guid id)
         {
-            var job = await _db.ProcessingJobs.FindAsync(id);
-            return job != null ? Ok(job) : NotFound();
+            var job = await _db.ProcessingJobs.AsNoTracking().FirstOrDefaultAsync(j => j.Id == id);
+            if (job is null) return NotFound();
+
+            JsonElement? result = null;
+            if (!string.IsNullOrWhiteSpace(job.ResultData))
+            {
+                using var doc = JsonDocument.Parse(job.ResultData);
+                result = doc.RootElement.Clone();
+            }
+
+            var dto = new ProcessingJobDto(job.Id, job.ScriptId, job.Status, job.CreatedAt, job.FinishedAt, result);
+            return Ok(dto);
         }
     }
 }

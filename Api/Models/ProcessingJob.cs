@@ -1,4 +1,4 @@
-﻿namespace ApiPreProcessamento.Models
+﻿namespace Api.Models
 {
     public enum JobStatus { Pending, Running, Completed, Failed }
     public class ProcessingJob

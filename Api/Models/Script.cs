@@ -1,4 +1,4 @@
-﻿namespace ApiPreProcessamento.Models
+﻿namespace Api.Models
 {
     public class Script
     {

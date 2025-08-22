@@ -93,7 +93,7 @@ A API expõe documentação OpenAPI/Swagger e um pipeline de CI (GitHub Actions)
 - Um comando e pronto: sobe API + PostgreSQL via Docker Compose e abre o Swagger.
 
 ```bash
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass .\setup.ps1 -Mode docker
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass; .\setup.ps1 -Mode docker
 ```
 
 - Swagger: http://localhost:8080/docs
@@ -164,8 +164,7 @@ dotnet run --project Api/Api.csproj
 #### A) Rodar tudo em Docker (API + DB)
 
 ```bash
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\setup.ps1 -Mode docker
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass; .\setup.ps1 -Mode docker
 ```
 
 Parar/remover:
@@ -177,11 +176,17 @@ docker compose down -v
 #### B) Rodar API local + DB no Docker
 
 ```bash
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-.\setup.ps1 -Mode local
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass; .\setup.ps1 -Mode local
 ```
 
 ## Variáveis de ambiente
+
+- POSTGRES_DB=mlopsdb
+- POSTGRES_USER=postgres
+- POSTGRES_PASSWORD=postgres
+
+- DB_HOST=db
+- DB_PORT=5432
 
 - DB_CONN – Connection string do PostgreSQL (ex.: Host=db;Port=5432;Database=mlopsdb;Username=postgres;Password=postgres).
 

@@ -19,7 +19,7 @@
 
 **Resultado:** processamento previsível, resiliente e com custo controlável.
 
-### 2) Como garantir que a aplicação não execute scripts maliciosos?
+### 2) Que medidas você implementaria para se certificar que a aplicação não execute scripts maliciosos?
 
 - Sandbox (Jint) endurecida:
   - Sem CLR/IO/rede, sem `eval/new Function`, sem `setTimeout/setInterval`.
@@ -32,7 +32,7 @@
 - Auditoria: log de submissões, versão do script, duração, consumo e erro.
 - Review/approval para scripts “privilegiados”.
 
-### 3) Suportar alto volume de execuções concorrentes de scripts
+### 3) Como aprimorar a implementação para suportar um alto volume de execuções concorrentes de scripts?
 
 - Arquitetura producer/consumer: API publica jobs na fila; N workers consomem.
 - Escala horizontal dos workers (HPA/autoscaling) com bounded concurrency.
@@ -42,7 +42,7 @@
 - Resultados no storage (S3/Blob) + DB guarda metadados (tamanho/URL/hash).
 - Circuit breaker / rate-limit por cliente.
 
-### 4) Evoluir a API para versionamento de scripts
+### 4) Como você evoluiria a API para suportar o versionamento de scripts?
 
 - Tabela `ScriptVersions`:
   `ScriptVersionId (PK)`, `ScriptId (FK)`, `Version (semver)`, `Code`, `IsActive`, `CreatedAt`.
@@ -51,7 +51,7 @@
 - Compatibilidade do schema de entrada: `InputSchema` (JSON Schema opcional) por versão.
 - APIs: `POST /scripts/{id}/versions`, `PATCH /scripts/{id}/versions/{v}/activate`, `GET /scripts/{id}/versions`.
 
-### 5) Política de backup de dados
+### 5) Que tipo de política de backup de dados você aplicaria neste cenário?
 
 - PostgreSQL PITR (WAL archiving):
   - Full diário + retenção de WAL (ex.: 7–30 dias).
@@ -61,7 +61,7 @@
 - Retenção e expurgo por compliance (LGPD), com jobs de limpeza.
 - Documentação de RPO/RTO: ex. RPO 15min, RTO 1h.
 
-### 6) Tratar massas de dados com informações sensíveis
+### 6) Como tratar massas de dados com potenciais informações sensíveis na API e no banco de dados?
 
 - Minimização: processe só o necessário; anonimização/masking/tokenização quando possível.
 - Criptografia:
@@ -73,7 +73,7 @@
 - Auditoria e trilha de acesso (quem viu, quando e por quê).
 - Política de retenção e direito de eliminação (LGPD).
 
-### 7) Benefícios do paradigma funcional
+### 7) Como você enxerga o paradigma funcional beneficiando a solução deste problema?
 
 - Pureza/Imutabilidade → previsibilidade e reprodutibilidade do pipeline.
 - Testabilidade: `process(data)` é determinística, fácil de unit-testar.

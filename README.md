@@ -13,8 +13,13 @@ A API expõe documentação OpenAPI/Swagger e um pipeline de CI (GitHub Actions)
   - [Tecnologias](#tecnologias)
   - [Estrutura de pastas](#estrutura-de-pastas)
   - [Como executar](#como-executar)
-    - [1) Com Docker Compose (recomendado)](#1-com-docker-compose-recomendado)
-    - [2) Local (sem Docker)](#2-local-sem-docker)
+    - [⚡ Execução rápida (recomendado)](#-execução-rápida-recomendado)
+    - [Execução Manual](#execução-manual)
+      - [1) Docker Compose (API + DB)](#1-docker-compose-api--db)
+      - [2) Local (sem Docker)](#2-local-sem-docker)
+    - [Execução Automática](#execução-automática)
+      - [A) Rodar tudo em Docker (API + DB)](#a-rodar-tudo-em-docker-api--db)
+      - [B) Rodar API local + DB no Docker](#b-rodar-api-local--db-no-docker)
   - [Variáveis de ambiente](#variáveis-de-ambiente)
   - [Migrações do EF Core](#migrações-do-ef-core)
   - [Fluxo de uso da API](#fluxo-de-uso-da-api)
@@ -77,59 +82,125 @@ A API expõe documentação OpenAPI/Swagger e um pipeline de CI (GitHub Actions)
 
 ## Como executar
 
-### 1) Com Docker Compose (recomendado)
+🧰 Pré-requisitos
 
-    - Crie um arquivo .env na raiz (não versione):
-        # .env
-        DB_CONN=Host=db;Port=5432;Database=mlopsdb;Username=postgres;Password=postgres
-        ASPNETCORE_URLS=http://0.0.0.0:8080
-        ASPNETCORE_ENVIRONMENT=Development
+- Windows + PowerShell 5+ (ou PowerShell 7)
+- Docker Desktop instalado e em execução (para o banco).
+- .NET SDK 9.0 instalado (para rodar local).
 
-    - Suba os containers:
-        docker compose up --build
+### ⚡ Execução rápida (recomendado)
 
-    - Acesse:
-        Swagger: http://localhost:8080/docs
-        OpenAPI JSON: http://localhost:8080/openapi/v1.json
+- Um comando e pronto: sobe API + PostgreSQL via Docker Compose e abre o Swagger.
 
-### 2) Local (sem Docker)
+```bash
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass .\setup.ps1 -Mode docker
+```
 
-    - Instale PostgreSQL e crie um banco mlopsdb.
-    - Crie Api/appsettings.Local.json (não versione):
+- Swagger: http://localhost:8080/docs
+- OpenAPI JSON: http://localhost:8080/openapi/v1.json
 
-        #json
-        {
-            "ConnectionStrings": {
-                "DefaultConnection": "Host=localhost;Port=5432;Database=mlopsdb;Username=postgres;Password=postgres"
-            }
-        }
+Para e Limpar:
 
-    - Rode migrações (ver seção de migrações).
-    - Execute a API:
+```bash
+docker compose down -v
+```
 
-        #bash
-        dotnet run --project Api/Api.csproj
+### Execução Manual
 
-    - Swagger: http://localhost:5080/docs (ou a porta configurada).
+#### 1) Docker Compose (API + DB)
 
+- Crie um arquivo **`.env`** na raiz do projeto com o conteúdo:
 
-Nunca versione `appsettings.Local.json` ou `.env` com credenciais reais.
+```env
+POSTGRES_DB=mlopsdb
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+
+DB_HOST=db
+DB_PORT=5432
+
+DB_CONN=Host=${DB_HOST};Port=${DB_PORT};Database=${POSTGRES_DB};Username=${POSTGRES_USER};Password=${POSTGRES_PASSWORD}
+
+ASPNETCORE_URLS=http://0.0.0.0:8080
+ASPNETCORE_ENVIRONMENT=Development
+```
+
+- Suba os containers:
+
+```bash
+docker compose up --build
+```
+
+- Acesse:
+
+  - Swagger: http://localhost:8080/docs
+  - OpenAPI JSON: http://localhost:8080/openapi/v1.json
+
+#### 2) Local (sem Docker)
+
+- Instale PostgreSQL e crie um banco mlopsdb.
+- Crie `Api/appsettings.Local.json` (não versione):
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=mlopsdb;Username=postgres;Password=postgres"
+  }
+}
+```
+
+- Rode migrações (ver seção de migrações).
+- Execute a API:
+
+```bash
+dotnet run --project Api/Api.csproj
+```
+
+- Swagger: `http://localhost:8080/docs` (ou a porta configurada).
+- Nunca versione `appsettings.Local.json` ou `.env` com credenciais reais.
+
+### Execução Automática
+
+#### A) Rodar tudo em Docker (API + DB)
+
+```bash
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\setup.ps1 -Mode docker
+```
+
+Parar/remover:
+
+```bash
+docker compose down -v
+```
+
+#### B) Rodar API local + DB no Docker
+
+```bash
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+.\setup.ps1 -Mode local
+```
 
 ## Variáveis de ambiente
 
 - DB_CONN – Connection string do PostgreSQL (ex.: Host=db;Port=5432;Database=mlopsdb;Username=postgres;Password=postgres).
+
 - ASPNETCORE_ENVIRONMENT – Development | Production.
 - ASPNETCORE_URLS – Ex.: http://0.0.0.0:8080 (para Docker).
 
 ## Migrações do EF Core
 
-    - Gerar (se necessário):
-        #bash
-        dotnet ef migrations add <NomeDaMigracao> -p Api/Api.csproj -s Api/Api.csproj
+Gerar (se necessário):
 
-    - Aplicar:
-        #bash
-        dotnet ef database update -p Api/Api.csproj -s Api/Api.csproj
+```bash
+dotnet ef migrations add <NomeDaMigracao> -p Api/Api.csproj -s Api/Api.csproj
+```
+
+Aplicar:
+
+```bash
+dotnet ef database update -p Api/Api.csproj -s Api/Api.csproj
+```
 
 No Docker, `o Program.cs` aplica `db.Database.Migrate()`.
 
@@ -139,52 +210,64 @@ No Docker, `o Program.cs` aplica `db.Database.Migrate()`.
 
 `POST /api/Scripts`
 
-    - Body:
+Body:
 
-        #json
-        {
-            "name": "BacenAggregator",
-            "code": "function process(data){ /* ... */ return data; }"
-        }
+```json
+{
+  "name": "BacenAggregator",
+  "code": "function process(data){ /* ... */ return data; }"
+}
+```
 
-    Resposta 201 Created (exemplo):
+Resposta `201 Created` (exemplo):
 
-        #json
-        {
-            "id": "e1834ca2-4504-4f6b-b18e-4297699f906f",
-            "name": "BacenAggregator",
-            "uploadedAt": "2025-08-20T14:06:41.5331146Z"
-        }
+```json
+{
+  "id": "e1834ca2-4504-4f6b-b18e-4297699f906f",
+  "name": "BacenAggregator",
+  "uploadedAt": "2025-08-20T14:06:41.5331146Z"
+}
+```
 
 ### 2) Criar um job de processamento
 
 `POST /api/Processing`
 
-    - Body:
+Body:
 
-        #json
-        {
-            "scriptId": "e1834ca2-4504-4f6b-b18e-4297699f906f",
-            "data": [ { /* array de registros */ } ]
-        }
+```json
+{
+  "scriptId": "e1834ca2-4504-4f6b-b18e-4297699f906f",
+  "data": [
+    {
+      /* array de registros */
+    }
+  ]
+}
+```
 
-    Resposta 201 Created: retorna o JobId (GUID).
+Resposta `201 Created`: retorna o JobId (GUID).
 
 ### 3) Consultar o job
 
 `GET /api/Processing/{id}`
 
-    Resposta 200 OK (exemplo):
+Resposta `200 OK` (exemplo):
 
-        #json
-        {
-            "id": "bf80a279-321c-473a-b85e-1c3ff878067fe",
-            "scriptId": "e1834ca2-4504-4f6b-b18e-4297699f906f",
-            "status": "completed",
-            "createdAt": "2025-08-20T15:20:57.372442Z",
-            "finishedAt": "2025-08-20T15:20:58.668932Z",
-            "result": [ { /* output do script/pós-processamento */ } ]
-        }
+```json
+{
+  "id": "bf80a279-321c-473a-b85e-1c3ff878067fe",
+  "scriptId": "e1834ca2-4504-4f6b-b18e-4297699f906f",
+  "status": "completed",
+  "createdAt": "2025-08-20T15:20:57.372442Z",
+  "finishedAt": "2025-08-20T15:20:58.668932Z",
+  "result": [
+    {
+      /* output do script/pós-processamento */
+    }
+  ]
+}
+```
 
 ## Exemplos
 
@@ -192,58 +275,61 @@ No Docker, `o Program.cs` aplica `db.Database.Migrate()`.
 
 Agrupa por `trimestre` e `nomeBandeira`, soma campos e ignora `produto !== 'Empresarial'`:
 
-        #json
-        function process(data){
-            const arr = Array.isArray(data) ? data : [];
-            const corp = arr.filter(x => x.produto === 'Empresarial');
+```js
+function process(data) {
+  const arr = Array.isArray(data) ? data : [];
+  const corp = arr.filter((x) => x.produto === "Empresarial");
 
-            const map = new Map();
-            for (const it of corp){
-                const key = `${it.trimestre}-${it.nomeBandeira}`;
-                let acc = map.get(key);
-                if(!acc){
-                acc = {
-                    trimestre: it.trimestre,
-                    nomeBandeira: it.nomeBandeira,
-                    qtdCartoesEmitidos: 0,
-                    qtdCartoesAtivos: 0,
-                    qtdTransacoesNacionais: 0,
-                    valorTransacoesNacionais: 0
-                };
-                map.set(key, acc);
-                }
-                acc.qtdCartoesEmitidos        += Number(it.qtdCartoesEmitidos)||0;
-                acc.qtdCartoesAtivos          += Number(it.qtdCartoesAtivos)||0;
-                acc.qtdTransacoesNacionais    += Number(it.qtdTransacoesNacionais)||0;
-                acc.valorTransacoesNacionais  += Number(it.valorTransacoesNacionais)||0;
-            }
-            return Array.from(map.values());
-        }
+  const map = new Map();
+  for (const it of corp) {
+    const key = `${it.trimestre}-${it.nomeBandeira}`;
+    let acc = map.get(key);
+    if (!acc) {
+      acc = {
+        trimestre: it.trimestre,
+        nomeBandeira: it.nomeBandeira,
+        qtdCartoesEmitidos: 0,
+        qtdCartoesAtivos: 0,
+        qtdTransacoesNacionais: 0,
+        valorTransacoesNacionais: 0,
+      };
+      map.set(key, acc);
+    }
+    acc.qtdCartoesEmitidos += Number(it.qtdCartoesEmitidos) || 0;
+    acc.qtdCartoesAtivos += Number(it.qtdCartoesAtivos) || 0;
+    acc.qtdTransacoesNacionais += Number(it.qtdTransacoesNacionais) || 0;
+    acc.valorTransacoesNacionais += Number(it.valorTransacoesNacionais) || 0;
+  }
+  return Array.from(map.values());
+}
+```
 
 ### Payload de dados (exemplo)
 
-        #json
-        [
-            {
-                "trimestre": "2023Q2",
-                "nomeBandeira": "VISA",
-                "nomeFuncao": "Crédito",
-                "produto": "Empresarial",
-                "qtdCartoesEmitidos": 3508384,
-                "qtdCartoesAtivos": 1716709,
-                "qtdTransacoesNacionais": 43984982,
-                "valorTransacoesNacionais": 12486611557.78,
-                "qtdTransacoesInternacionais": 470796,
-                "valorTransacoesInternacionais": 397043258.04
-            }
-        ]
+```json
+[
+  {
+    "trimestre": "2023Q2",
+    "nomeBandeira": "VISA",
+    "nomeFuncao": "Crédito",
+    "produto": "Empresarial",
+    "qtdCartoesEmitidos": 3508384,
+    "qtdCartoesAtivos": 1716709,
+    "qtdTransacoesNacionais": 43984982,
+    "valorTransacoesNacionais": 12486611557.78,
+    "qtdTransacoesInternacionais": 470796,
+    "valorTransacoesInternacionais": 397043258.04
+  }
+]
+```
 
 ## Testes e CI
 
-- Rodar testes localmente
+Rodar testes localmente
 
-        #bash
-        dotnet test ApiProcessing.sln
+```bash
+dotnet test ApiProcessing.sln
+```
 
 - GitHub Actions
   - Arquivo: `.github/workflows/ci.yml`
@@ -275,3 +361,7 @@ Agrupa por `trimestre` e `nomeBandeira`, soma campos e ignora `produto !== 'Empr
 ## Licença
 
 Distribuído sob a licença MIT. Veja `LICENSE` (se aplicável).
+
+```
+
+```

@@ -43,6 +43,11 @@ function Ensure-EnvFile {
   $envPath = Join-Path $root '.env'
   if (-not (Test-Path $envPath)) {
 @"
+POSTGRES_DB=mlopsdb
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+DB_HOST=db
+DB_PORT=5432
 DB_CONN=Host=db;Port=5432;Database=mlopsdb;Username=postgres;Password=postgres
 ASPNETCORE_URLS=http://0.0.0.0:8080
 ASPNETCORE_ENVIRONMENT=Development
@@ -70,7 +75,7 @@ function Ensure-AppSettingsLocal {
 }
 
 function Start-DockerFull {
-  if (-not (Test-Docker)) { throw "Docker não está disponível. Abra o Docker Desktop e tente novamente." }
+  if (-not (Test-Docker)) { throw "Docker nao esta disponivel. Abra o Docker Desktop e tente novamente." }
 
   Ensure-EnvFile
 
@@ -87,14 +92,14 @@ function Start-DockerFull {
 }
 
 function Start-Local {
-  if (-not (Test-Docker)) { throw "Docker não está disponível. Abra o Docker Desktop e tente novamente." }
+  if (-not (Test-Docker)) { throw "Docker nao esta disponivel. Abra o Docker Desktop e tente novamente." }
 
   Write-Info "Subindo apenas o banco (db) via docker compose..."
   docker compose up -d db
 
   Ensure-AppSettingsLocal
 
-  Write-Info "Restaurando e compilando solução..."
+  Write-Info "Restaurando e compilando solucao..."
   dotnet restore "$root\ApiProcessing.sln"
   dotnet build "$root\ApiProcessing.sln" -c Release
 
@@ -107,7 +112,7 @@ function Start-Local {
     Write-Ok "API pronta em http://localhost:8080"
     Start-Process 'http://localhost:8080/docs'
   } else {
-    Write-Warn "API não respondeu no tempo limite. Verifique o console da janela do dotnet run."
+    Write-Warn "API nao respondeu no tempo limite. Verifique o console da janela do dotnet run."
   }
 }
 
@@ -117,7 +122,7 @@ try {
     'docker' { Start-DockerFull }
     'local'  { Start-Local }
   }
-  Write-Ok "Concluído."
+  Write-Ok "Concluido."
 } catch {
   Write-Err $_.Exception.Message
   exit 1
